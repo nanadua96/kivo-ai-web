@@ -122,22 +122,55 @@
 // export default App
 
 import { useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+
+import 'highlight.js/styles/github-dark.css';
 import './App.css';
 
 function App() {
   const inputRef = useRef('');
 
-  const [foo, setFoo] = useState(false);
+  const sample = [
+    {
+      role: 'user',
+      text: 'Which continent is Ghana in?',
+      timestamp: '2026-10-15T08:43:49.549Z',
+    },
+    {
+      role: 'assistant',
+      text: 'Ghana is located in **Africa** (specifically, West Africa).',
+      timestamp: '2026-10-15T08:43:49.549Z',
+    },
+  ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevents the page from refreshing on form submit
+  const [messages, setMessages] = useState(sample ?? []);
 
-    // Get the current value of the input
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     const inputValue = inputRef.current.value;
     console.log('User typed:', inputValue);
 
-    // Optional: Clear the input after submission
-    inputRef.current.value = '';
+    try {
+      const response = await fetch('http://127.0.0.1:3000/api/chat', {
+        method: 'POST',
+        body: JSON.stringify(messages),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response) {
+        console.log('Error!');
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      inputRef.current.value = '';
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
@@ -158,9 +191,58 @@ function App() {
         </div>
       </aside> */}
       <section className="chat">
-        <div className="headline-wrapper">
-          <p className="headline">Welcome to Kivo AI</p>
-        </div>
+        {messages.length === 0 && (
+          <div className="headline-wrapper">
+            <p className="headline">Welcome to Kivo AI</p>
+          </div>
+        )}
+
+        {messages.map((message) => {
+          if (message.role === 'user')
+            return (
+              <div
+                style={{
+                  backgroundColor: 'blue',
+                  color: 'white',
+                  padding: '15px',
+                  borderRadius: '50px',
+                  alignSelf: 'flex-end',
+                }}
+              >
+                <p>{message.text}</p>
+              </div>
+            );
+
+          if (message.role === 'assistant')
+            return (
+              <div
+                style={{
+                  alignSelf: 'flex-start',
+                }}
+                className="markdown-body"
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {bar}
+                  {/* {message.content} */}
+                </ReactMarkdown>
+              </div>
+            );
+        })}
+        {/* 
+        {bar && (
+          <div className="markdown-body">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeHighlight]}
+            >
+              {bar}
+    
+            </ReactMarkdown>
+          </div>
+        )} */}
 
         <form className="input-wrapper" onSubmit={handleSubmit}>
           <input
